@@ -6,28 +6,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
+      
       - run: npm install
+      
       - run: |
           mkdir -p www
           cp index.html www/
           cp manifest.json www/ || true
           cp sw.js www/ || true
+          cp privacy.html www/
           cp *.png www/ || true
-      - name: Create keystore
-        run: keytool -genkey -v -keystore android/app/release.keystore -alias lingokin -keyalg RSA -keysize 2048 -validity 10000 -storepass lingokin123 -keypass lingokin123 -dname "CN=Joseph Marchand, OU=LingoKin, O=LingoKin, L=Lubumbashi, C=CD"
+      
+      - name: Add Android platform
+        run: |
+          npx cap add android || true
+          npx cap copy android
+      
+      - name: Create Release Keystore
+        run: |
+          mkdir -p android/app
+          rm -f android/app/release.keystore
+          keytool -genkey -v -keystore android/app/release.keystore -alias lingokin -keyalg RSA -keysize 2048 -validity 10000 -storepass lingokin123 -keypass lingokin123 -dname "CN=Joseph Marchand, OU=LingoKin, O=LingoKin, L=Lubumbashi, C=CD"
+      
       - name: Build Signed AAB
         run: |
-          npx cap add android
-          npx cap copy android
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease -Pandroid.injected.signing.store.file=app/release.keystore -Pandroid.injected.signing.store.password=lingokin123 -Pandroid.injected.signing.key.alias=lingokin -Pandroid.injected.signing.key.password=lingokin123
-      - uses: actions/upload-artifact@v5
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: LingoKin-AAB-Release
           path: android/app/build/outputs/bundle/release/app-release.aab
