@@ -1,0 +1,6 @@
+{
+  "appId": "com.josephmarchand.lingokin",
+  "appName": "LingoKin",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
