@@ -1,42 +1,33 @@
-name: Build LingoKin APK & AAB
+name: Build LingoKin Release
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with:
-          node-version: 20
+        with: { node-version: 20 }
       - uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+        with: { distribution: 'temurin', java-version: '17' }
       - run: npm install
-      - name: Prepare web folder
-        run: |
+      - run: |
           mkdir -p www
           cp index.html www/
-          cp manifest.json www/ || echo "no manifest"
-          cp sw.js www/ || echo "no sw"
-          cp *.png www/ || echo "no png"
-      - name: Build Android
+          cp manifest.json www/ || true
+          cp sw.js www/ || true
+          cp *.png www/ || true
+      - name: Create keystore
+        run: keytool -genkey -v -keystore android/app/release.keystore -alias lingokin -keyalg RSA -keysize 2048 -validity 10000 -storepass lingokin123 -keypass lingokin123 -dname "CN=Joseph Marchand, OU=LingoKin, O=LingoKin, L=Lubumbashi, C=CD"
+      - name: Build Signed AAB
         run: |
           npx cap add android
           npx cap copy android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
+          ./gradlew bundleRelease -Pandroid.injected.signing.store.file=app/release.keystore -Pandroid.injected.signing.store.password=lingokin123 -Pandroid.injected.signing.key.alias=lingokin -Pandroid.injected.signing.key.password=lingokin123
       - uses: actions/upload-artifact@v5
         with:
-          name: LingoKin-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-      - uses: actions/upload-artifact@v5
-        with:
-          name: LingoKin-AAB
-          path: android/app/build/outputs/bundle/debug/app-debug.aab
+          name: LingoKin-AAB-Release
+          path: android/app/build/outputs/bundle/release/app-release.aab
